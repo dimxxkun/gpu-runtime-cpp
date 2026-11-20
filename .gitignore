@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+cmake-build-*/
+out/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Profiler & visualization outputs
+trace.json
+*.dot
+*.svg
+*.png
+
+# IDE & OS files
+.vscode/
+.idea/
+.cache/
+compile_commands.json
+.DS_Store
+Thumbs.db

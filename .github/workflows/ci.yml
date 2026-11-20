@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC Release + Benchmarks
+            cc: gcc
+            cxx: g++
+            build_type: Release
+            sanitizers: "OFF"
+            run_bench: true
+          - name: Clang Release
+            cc: clang
+            cxx: clang++
+            build_type: Release
+            sanitizers: "OFF"
+            run_bench: false
+          - name: GCC Debug + ASan & UBSan
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+            sanitizers: "ON"
+            run_bench: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DENABLE_SANITIZERS=${{ matrix.sanitizers }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run CTest Suite
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure --verbose
+
+      - name: Run Benchmark Smoke Test
+        if: ${{ matrix.run_bench }}
+        run: |
+          ./build/gpuruntime_bench --quick --trace build/trace.json
+          test -s build/trace.json
